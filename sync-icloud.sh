@@ -8,10 +8,6 @@ Initialise(){
    login_counter="0"
    apple_id="$(echo -n ${apple_id} | tr '[:upper:]' '[:lower:]')"
    cookie_file="$(echo -n "${apple_id//[^a-z0-9_]/}")"
-   case "$-" in
-      *i*) interactive_session="True" ;;
-      *)	interactive_session="False" ;;
-   esac
    local icloud_dot_com dns_counter
    if [ "${icloud_china}" ]; then
       icloud_domain="icloud.com.cn"
@@ -61,7 +57,6 @@ Initialise(){
       LogWarning "Apple password variable set to 'userkeyring'. This variable can now be removed as it is now the only supported option, so obsolete - continue in 2 minutes"
       sleep 120
    fi
-   LogInfo "Interactive session: $- \(${interactive_session}\)"
    LogInfo "Running user id: $(id --user)"
    LogInfo "Running group id: $(id --group)"
    LogInfo "Local user: ${user:=user}:${user_id:=1000}"
@@ -859,24 +854,24 @@ Notify(){
    notification_files_preview_type="${6}"
    notification_files_preview_text="${7}"
 
-   if [ "${notification_classification}" = "startup" ];then
-      notification_icon="\xE2\x96\xB6"
+   if [ "${notification_classification}" = "startup" ]; then
+      notification_icon="🚢"
       # 启动成功通知封面/Image for Startup success
       thumb_media_id="$media_id_startup"
    elif [ "${notification_classification}" = "downloaded files" ]; then
-      notification_icon="\xE2\x8F\xAC"
+      notification_icon="✅"
       # 下载通知封面/Image for downloaded files
       thumb_media_id="$media_id_download"
    elif [ "${notification_classification}" = "cookie expiration" ]; then
-      notification_icon="\xF0\x9F\x9A\xA9"
+      notification_icon="🕓"
       # cookie即将过期通知封面/Image for cookie expiration
       thumb_media_id="$media_id_expiration"
    elif [ "${notification_classification}" = "deleted files" ]; then
-      notification_icon="\xE2\x9D\x8C"
+      notification_icon="🚮"
       # 删除文件通知封面/Image for deleted files
       thumb_media_id="$media_id_delete"
    elif [ "${notification_classification}" = "failure" ] || [ "${notification_classification}" = "cookie expired" ]; then
-      notification_icon="\xF0\x9F\x9A\xA8"
+      notification_icon="❗"
       # 同步失败、cookiey已过期通知封面/Image for cookie expired or failure
       thumb_media_id="$media_id_warning"
    fi
@@ -980,16 +975,18 @@ Notify(){
    elif [ "${notification_type}" = "Gotify" ]; then
       notification_result="$(curl --silent --output /dev/null --write-out "%{http_code}" "${notification_url}"  \
          -F "title=${notification_title}" \
-         -F "message=${notification_message}")"
+         -F "message=${notification_message}")"   
    elif [ "${notification_type}" = "Bark" ]; then
       if [ "${notification_files_preview_count}" ]; then
-         bark_text="$(echo -e "${notification_icon} ${notification_message} Most recent ${notification_files_preview_count} ${notification_files_preview_type} files: ${notification_files_preview_text//_/\\_}")"
+      bark_text="${notification_icon} ${notification_message} Most recent ${notification_files_preview_count} ${notification_files_preview_type} files: ${notification_files_preview_text}"
       else
-         bark_text="$(echo -e "${notification_icon} ${notification_message}")"
+      bark_text="${notification_icon} ${notification_message}"
       fi
+      json=$(jq -anc --arg device_key "$bark_device_key" --arg title "$notification_title" --arg body "$bark_text" '{"device_key": $device_key, "title": $title, "body": $body}')
       notification_result="$(curl --silent --output /dev/null --write-out "%{http_code}" "http://${bark_server}/push" \
+         -X POST
          -H 'Content-Type: application/json; charset=utf-8' \
-         -d "{ \"device_key\": \"${bark_device_key}\", \"title\": \"${notification_title}\", \"body\": \"${bark_text}\", \"category\": \"category\" }")"
+         -d "$json")"
    fi
    if [ "${notification_type}" ]; then
       if [ "${notification_result:0:1}" -eq 2 ]; then
@@ -1037,7 +1034,7 @@ CommandLineBuilder(){
 
 SyncUser(){
    LogInfo "Sync user ${user}"
-   if [ "${synchronisation_delay}" -ne 0 ] && [ "${interactive_session}" = "False" ]; then
+   if [ "${synchronisation_delay}" -ne 0 ]; then
       LogInfo "Delay for ${synchronisation_delay} minutes"
       sleep "${synchronisation_delay}m"
    fi
