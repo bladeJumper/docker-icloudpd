@@ -223,7 +223,7 @@ ConfigureNotifications(){
          notification_title="${notification_title//[^a-zA-Z0-9_ ]/}"
          LogInfo "Cleaned notification title: ${notification_title}"
       else
-         LogInfo "Notification title: ${notification_title:=boredazfcuk/iCloudPD}"
+         LogInfo "Notification title: ${notification_title:=iCloud同步}"
       fi
       if [ "${notification_type}" = "Prowl" ] && [ "${prowl_api_key}" ]; then
          LogInfo "${notification_type} notifications enabled"
@@ -978,13 +978,13 @@ Notify(){
          -F "message=${notification_message}")"   
    elif [ "${notification_type}" = "Bark" ]; then
       if [ "${notification_files_preview_count}" ]; then
-      bark_text="${notification_icon} ${notification_message} Most recent ${notification_files_preview_count} ${notification_files_preview_type} files: ${notification_files_preview_text}"
+      bark_text="${notification_icon} ${notification_message} 最近同步的 ${notification_files_preview_count} ${notification_files_preview_type} 个文件: ${notification_files_preview_text}"
       else
       bark_text="${notification_icon} ${notification_message}"
       fi
       json=$(jq -anc --arg device_key "$bark_device_key" --arg title "$notification_title" --arg body "$bark_text" '{"device_key": $device_key, "title": $title, "body": $body}')
       notification_result="$(curl --silent --output /dev/null --write-out "%{http_code}" "http://${bark_server}/push" \
-         -X POST
+         -X POST \
          -H 'Content-Type: application/json; charset=utf-8' \
          -d "$json")"
    fi
